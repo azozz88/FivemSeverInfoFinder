@@ -3,6 +3,7 @@ from discord.ext import commands
 import requests
 import json
 from config import FIVEM_CONFIG, ERROR_MESSAGES, TICKET_CONFIG
+import os
 
 class FiveMScanner(commands.Cog):
     def __init__(self, bot):
@@ -101,6 +102,19 @@ class FiveMScanner(commands.Cog):
                     embed.add_field(name=name, value=value, inline=inline)
                 
                 await ctx.send(embed=embed)
+            
+            # إرسال الملف بعد الـ embeds
+            await ctx.send("📁 معلومات السيرفر كاملة:", file=discord.File('server_info.json'))
+            
+            # تنظيف الملف بعد إرساله
+            try:
+                os.remove('server_info.json')
+            except:
+                pass
+
+            # إعادة تفعيل الكتابة للمستخدم بعد إكمال الفحص
+            if isinstance(ctx.channel, discord.TextChannel) and ctx.channel.name.startswith(TICKET_CONFIG['prefix']):
+                await ctx.channel.set_permissions(ctx.author, send_messages=True)
             
         except Exception as e:
             print(f"Error: {str(e)}")
