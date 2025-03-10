@@ -50,7 +50,7 @@ TICKET_CONFIG = {
 
 # إعدادات فحص FiveM
 FIVEM_CONFIG = {
-    'api_url': 'https://servers-frontend.fivem.net/api/servers/single/{}',
+    'api_url': 'https://servers-frontend.fivem.net/api/servers/single/{server_code}',
     'headers': {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     },
