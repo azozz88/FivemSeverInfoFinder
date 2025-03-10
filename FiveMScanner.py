@@ -51,18 +51,14 @@ class FiveMScanner(commands.Cog):
             data = response.json()
             server_data = data['Data']
             
-            # حفظ الاستجابة الكاملة في ملف
-            with open('server_info.json', 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            
-            # إرسال الملف
-            await ctx.send(file=discord.File('server_info.json'))
-            
-            # تجميع كل المتغيرات
+            # إنشاء وإرسال embeds أولاً
             all_fields = []
             
             # إضافة المعلومات الأساسية
-            emojis = FIVEM_CONFIG['emojis']
+            emojis = {
+                'players': '👥',
+                'ip': '🌐'
+            }
             all_fields.append((f"{emojis['players']} عدد اللاعبين", f"{server_data['clients']}/{server_data['sv_maxclients']}", True))
             all_fields.append((f"{emojis['ip']} IP", data.get('EndPoint', ''), True))
             
@@ -91,27 +87,38 @@ class FiveMScanner(commands.Cog):
             # تقسيم الحقول إلى مجموعات من 25
             field_groups = [all_fields[i:i + 24] for i in range(0, len(all_fields), 24)]
             
-            # إنشاء وإرسال embeds متعددة
-            for i, fields in enumerate(field_groups):
-                embed = discord.Embed(
-                    title=f"🎮 {server_data['hostname']}" if i == 0 else f"🎮 {server_data['hostname']} (تابع {i+1})",
-                    color=FIVEM_CONFIG['embed_color']
-                )
-                
-                for name, value, inline in fields:
-                    embed.add_field(name=name, value=value, inline=inline)
-                
-                await ctx.send(embed=embed)
-            
-            # إرسال الملف بعد الـ embeds
-            await ctx.send("📁 معلومات السيرفر كاملة:", file=discord.File('server_info.json'))
-            
-            # تنظيف الملف بعد إرساله
             try:
-                os.remove('server_info.json')
-            except:
-                pass
-
+                # إنشاء وإرسال embeds متعددة
+                for i, fields in enumerate(field_groups):
+                    embed = discord.Embed(
+                        title=f"🎮 {server_data['hostname']}" if i == 0 else f"🎮 {server_data['hostname']} (تابع {i+1})",
+                        color=FIVEM_CONFIG['embed_color']
+                    )
+                    
+                    for name, value, inline in fields:
+                        if value:  # تأكد من أن القيمة ليست فارغة
+                            embed.add_field(name=name, value=value[:1024], inline=inline)
+                    
+                    await ctx.send(embed=embed)
+                
+                # حفظ وإرسال الملف بعد الـ embeds
+                with open('server_info.json', 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                
+                await ctx.send("📁 معلومات السيرفر كاملة:", file=discord.File('server_info.json'))
+                
+            except Exception as e:
+                logger.error(f"Error sending embeds: {str(e)}")
+                raise  # إعادة رفع الخطأ للتعامل معه في الـ try/except الرئيسي
+            
+            finally:
+                # تنظيف الملف في جميع الحالات
+                try:
+                    if os.path.exists('server_info.json'):
+                        os.remove('server_info.json')
+                except Exception as e:
+                    logger.error(f"Error removing file: {str(e)}")
+            
             # إعادة تفعيل الكتابة للمستخدم بعد إكمال الفحص
             if isinstance(ctx.channel, discord.TextChannel) and ctx.channel.name.startswith(TICKET_CONFIG['prefix']):
                 await ctx.channel.set_permissions(ctx.author, send_messages=True)
